@@ -3,6 +3,12 @@ library(httr)
 library(stringr)
 
 urls <- c(
+  "http://www.drive24.co.uk/hertfordshire/vehicledetailsview.aspx?carid=35474944&searchguid=bbed0343-9e90-4fc1-919e-658048b8b81d",
+  "http://www.gumtree.com/p/cars-vans-motorbikes/for-sale-t-spirit-prius-15-fsh-2-owners-from-new-54000-miles/1076424625",
+  "http://www.ebay.co.uk/itm/2008-Toyota-Prius-1-5-VV-i-Hybrid-T-Spirit-Auto-DVD-Sat-Nav-Rev-Cam-Bluetooth-De-/361017345899?pt=Automobiles_UK&hash=item540e4f876b",
+  "http://www.ebay.co.uk/itm/TOYOTA-PRIUS-1-5-CVT-AUTO-HYBRID-2009-09-/281408173077?pt=Automobiles_UK&hash=item41853bf415",
+  "http://www.ebay.co.uk/itm/Toyota-Prius-1-5-CVT-T3-Hybrid-07-REG-FULL-SERVICE-HISTORY-/131265270176?pt=Automobiles_UK&hash=item1e900511a0",
+  "http://www.autotrader.co.uk/classified/advert/201406275350718/sort/default/onesearchad/used%2Cnearlynew%2Cnew/price-to/8000/make/toyota/postcode/ha27lb/radius/1500/model/prius/advert-type/featured-listing/dealer-id/20833/usedcars",
   "http://www.autotrader.co.uk/classified/advert/201406285387200/sort/locasc/usedcars/page/1/price-from/500/advert-type/Classified/radius/1500/onesearchad/used%2Cnearlynew%2Cnew/quicksearch/true/postcode/ha27lb/make/toyota/price-to/8000/model/prius?logcode=p",
   "http://www.autotrader.co.uk/classified/advert/201406255291862/sort/locasc/model/prius/price-to/8000/price-from/500/make/toyota/postcode/ha27lb/quicksearch/true/page/1/advert-type/Classified/usedcars/radius/1500/onesearchad/used%2Cnearlynew%2Cnew?logcode=p",
   "http://www.autotrader.co.uk/classified/advert/201406104901481/sort/locasc/make/toyota/price-to/8000/page/1/onesearchad/used%2Cnearlynew%2Cnew/quicksearch/true/advert-type/Classified/postcode/ha27lb/price-from/500/radius/1500/usedcars/model/prius?logcode=p",
@@ -17,7 +23,7 @@ urls <- c(
   "http://www.autotrader.co.uk/classified/advert/201407306216474/sort/locasc/quicksearch/true/advert-type/Classified/price-to/8500/usedcars/page/1/onesearchad/used/radius/30/model/prius/postcode/ha27lb/make/toyota?logcode=p",
   "http://www.autotrader.co.uk/classified/advert/201406255291862/sort/locasc/quicksearch/true/advert-type/Classified/price-to/8500/usedcars/page/1/onesearchad/used/radius/30/model/prius/postcode/ha27lb/make/toyota?logcode=p",
   "http://www.autotrader.co.uk/classified/advert/201408056374096/sort/locasc/postcode/ha27lb/make/toyota/radius/30/advert-type/Classified/page/1/quicksearch/true/price-to/8500/model/prius/onesearchad/used/usedcars?logcode=p",
-  "http://www.autotrader.co.uk/classified/advert/201408066403894/sort/default/usedcars/postcode/ha27lb/model/prius/onesearchad/used/price-to/8500/radius/30/quicksearch/true/make/toyota/page/3/advert-type/Classified?logcode=p",
+  #"http://www.autotrader.co.uk/classified/advert/201408066403894/sort/default/usedcars/postcode/ha27lb/model/prius/onesearchad/used/price-to/8500/radius/30/quicksearch/true/make/toyota/page/3/advert-type/Classified?logcode=p",
   "http://www.autotrader.co.uk/classified/advert/201407246050898/sort/default/make/toyota/postcode/ha27lb/page/1/price-to/10000/advert-type/Classified/onesearchad/used%2Cnearlynew/maximum-mileage/up_to_50000_miles/radius/20/model/prius/usedcars?logcode=p",
   "http://www.autotrader.co.uk/classified/advert/201408056351520/sort/default/advert-type/Classified/usedcars/model/prius/radius/20/page/1/maximum-mileage/up_to_50000_miles/postcode/ha27lb/onesearchad/used%2Cnearlynew/price-to/10000/make/toyota?logcode=p",
   "http://www.autotrader.co.uk/classified/advert/201407075620591/sort/default/advert-type/Classified/radius/20/onesearchad/used%2Cnearlynew/postcode/ha27lb/page/1/price-to/10000/usedcars/maximum-mileage/up_to_50000_miles/model/prius/make/toyota?logcode=p",
@@ -43,6 +49,25 @@ getfsh <- function(specs) {
   if (hasfsh == -1) "N" else "Y"
 }
 
+gettype <- function(specs, title) {
+  if ((regexpr("t3", title, ignore.case=TRUE)[[1]] > 0) |
+        (regexpr("t3", specs, ignore.case=TRUE)[[1]] > 0))
+    {
+    return ("T3")
+  }
+  if ((regexpr("t4", title, ignore.case=TRUE)[[1]] > 0) |
+        (regexpr("t4", specs, ignore.case=TRUE)[[1]] > 0))
+  {
+    return ("T4")
+  }
+  if ((regexpr("spirit", title, ignore.case=TRUE)[[1]] > 0) |
+        (regexpr("spirit", specs, ignore.case=TRUE)[[1]] > 0))
+  {
+    return ("Spirit")
+  }
+  "UNKNOWN"
+}
+
 autotraderExtractor <- function(url) {
   html <- htmlTreeParse(url, useInternalNodes=T)
   price <- xpathSApply(html, "//span[@id='price']", xmlValue)
@@ -64,7 +89,8 @@ autotraderExtractor <- function(url) {
   mileage = str_trim(sub("Miles", "", mileage, ignore.case = TRUE))
   mileage = sub(",", "", mileage)
   fsh = getfsh(sellerspecs)
-  cbind(year, mileage, price, fsh, car, distance,phone,  sellerspecs,url)
+  model = gettype(car,sellerspecs)
+  cbind(year, model, mileage, price, fsh, car, distance,phone,  sellerspecs,url)
 }
 
 ebayExtractor <- function(url) {
@@ -79,7 +105,8 @@ ebayExtractor <- function(url) {
   mileage = str_trim(sub("Miles", "", mileage, ignore.case = TRUE))
   mileage = sub(",", "", mileage)
   fsh = getfsh(sellerspecs)
-  cbind(year, mileage, price, fsh, car, distance,phone,  sellerspecs,url)
+  model = gettype(car,sellerspecs)
+  cbind(year, model, mileage, price, fsh, car, distance,phone,  sellerspecs,url)
 }
 
 gumtreeExtractor <- function(url) {
@@ -96,7 +123,8 @@ gumtreeExtractor <- function(url) {
   mileage = str_trim(sub("Miles", "", mileage, ignore.case = TRUE))
   mileage = sub(",", "", mileage)
   fsh = getfsh(sellerspecs)
-  cbind(year, mileage, price,fsh, car, distance,phone,  sellerspecs,url)
+  model = gettype(car,sellerspecs)
+  cbind(year, model, mileage, price,fsh, car, distance,phone,  sellerspecs,url)
 }
 
 drive24Extractor <- function(url) {
@@ -116,7 +144,8 @@ drive24Extractor <- function(url) {
   mileage = str_trim(sub("Miles", "", mileage, ignore.case = TRUE))
   mileage = sub(",", "", mileage)
   fsh = getfsh(sellerspecs)
-  cbind(year, mileage,price, fsh,car, distance,phone, sellerspecs,url)
+  model = gettype(car,sellerspecs)
+  cbind(year, model, mileage,price, fsh,car, distance,phone, sellerspecs,url)
 }
 
 df <- data.frame()
